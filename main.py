@@ -5,9 +5,9 @@ from pydantic import BaseModel, Field
 import key_config as keys
 import uvicorn
 import boto3
-
+# running on localhost:8000
 app = FastAPI()
-BUCKET_NAME = 'soccer-videos-bucket'
+BUCKET_NAME = 'soccer-reels-video-upload'
 s3= boto3.client('s3',
                  aws_access_key_id=keys.ACCESS_KEY_ID,
                  aws_secret_access_key=keys.SECRET_ACCESS_KEY
