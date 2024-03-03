@@ -32,7 +32,7 @@ cloudfront_distribution_domain = keys.CLOUDFRONT_DOMAIN
 cloudfront_resource_path = '/MP4/video.mp4'
 
 def rsa_signer(message):
-    with open('./cloudfront_rsa.pem', 'rb') as key_file:
+    with open('./private_cf.pem', 'rb') as key_file:
         private_key = serialization.load_pem_private_key(
             key_file.read(),
             password=None,
@@ -43,8 +43,7 @@ def rsa_signer(message):
 def generate_signed_url():
     try:
         signer = CloudFrontSigner(cloudfront_key_pair_id, rsa_signer)
-        expiration_time = datetime.now() + timedelta(hours=1)
-        # epoch_time = int(expiration_time.timestamp())
+        expiration_time = datetime.now() + timedelta(hours=24*7)
         url = f"https://{cloudfront_distribution_domain}{cloudfront_resource_path}"
         signed_url = signer.generate_presigned_url(
             url,
