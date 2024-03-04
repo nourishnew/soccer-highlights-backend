@@ -45,6 +45,7 @@ def generate_signed_url(filename):
         signer = CloudFrontSigner(cloudfront_key_pair_id, rsa_signer)
         expiration_time = datetime.now() + timedelta(hours=24*7)
         url = f"{cloudfront_distribution_domain}/{filename}"
+        # print("in generate", url)
         signed_url = signer.generate_presigned_url(
             url,
             date_less_than=expiration_time
@@ -72,29 +73,33 @@ async def upload(file: UploadFile = File(...)):
             return "error in uploading."
     
 
-def list_objects(bucket_name='reeltimes3', folder_name='MP4'):
+def list_objects(bucket_name='reeltimes3', folder_name='demo'):
     paginator = s3.get_paginator('list_objects_v2')    
     page_iterator = paginator.paginate(Bucket=bucket_name, Prefix=folder_name)
-    filenames = []
+    filenames = set() 
 
     for page in page_iterator:
         if 'Contents' in page:
-            for obj in page['Contents']:
+            for obj in page['Contents'][1:]:
+                if obj['Size'] == 0:
+                    continue
                 print(f"Key: {obj['Key']}, Size: {obj['Size']}")
-                filenames.append(obj['Key'].split('/')[-1])
+                filenames.add(obj['Key'].split('/')[-1])
     
-    return filenames
+    return list(filenames)
 
 
 @app.get("/get-signed-url", response_model=List[str])
 async def get_signed_url():
-    filenames = list_objects('reeltimes3', 'MP4')
+    folder_name = 'demo'
+    filenames = list_objects('reeltimes3', folder_name)
     signed_urls = []
-    print(filenames)
+    # print(filenames)
     for filename in filenames:
-        signed_url = generate_signed_url(filename)
+        signed_url = generate_signed_url(f"{folder_name}/{filename}")
         # print(signed_url)
         signed_urls.append(signed_url)
+    print("SIGNED_URLS", signed_urls)
     return signed_urls
     # return JSONResponse(content={'signedUrl': signed_url})
 
