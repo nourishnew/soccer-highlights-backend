@@ -29,7 +29,7 @@ origins = [
 # AWS CloudFront settings
 cloudfront_key_pair_id = keys.CLOUDFRONT_KEY_ID
 cloudfront_distribution_domain = keys.CLOUDFRONT_DOMAIN
-cloudfront_resource_path = '/MP4/video.mp4'
+cloudfront_resource_path = '/video.mp4'
 
 def rsa_signer(message):
     with open('./private_cf.pem', 'rb') as key_file:
@@ -44,7 +44,7 @@ def generate_signed_url():
     try:
         signer = CloudFrontSigner(cloudfront_key_pair_id, rsa_signer)
         expiration_time = datetime.now() + timedelta(hours=24*7)
-        url = f"https://{cloudfront_distribution_domain}{cloudfront_resource_path}"
+        url = f"{cloudfront_distribution_domain}{cloudfront_resource_path}"
         signed_url = signer.generate_presigned_url(
             url,
             date_less_than=expiration_time
@@ -66,14 +66,13 @@ async def upload(file: UploadFile = File(...)):
     with open(file.filename, 'rb') as file_data:
         print(file.filename)
         try:
-            s3.upload_fileobj(file_data, BUCKET_NAME, file.filename)
+            s3.upload_fileobj(file_data, BUCKET_NAME, file.filename, ExtraArgs={'ACL':'public-read'})
             return "file uploaded"
         except:
             return "error in uploading."
     
 @app.get("/get-signed-url")
 async def get_signed_url():
-    print("LOLOLOLO")
     signed_url = generate_signed_url()
     return JSONResponse(content={'signedUrl': signed_url})
 
