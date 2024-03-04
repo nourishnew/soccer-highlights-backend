@@ -29,7 +29,7 @@ origins = [
 # AWS CloudFront settings
 cloudfront_key_pair_id = keys.CLOUDFRONT_KEY_ID
 cloudfront_distribution_domain = keys.CLOUDFRONT_DOMAIN
-cloudfront_resource_path = '/video.mp4'
+# cloudfront_resource_path = '/video.mp4'
 
 def rsa_signer(message):
     with open('./private_cf.pem', 'rb') as key_file:
@@ -40,11 +40,11 @@ def rsa_signer(message):
         )
     return private_key.sign(message, padding.PKCS1v15(), hashes.SHA1())
 
-def generate_signed_url():
+def generate_signed_url(filename):
     try:
         signer = CloudFrontSigner(cloudfront_key_pair_id, rsa_signer)
         expiration_time = datetime.now() + timedelta(hours=24*7)
-        url = f"{cloudfront_distribution_domain}{cloudfront_resource_path}"
+        url = f"{cloudfront_distribution_domain}/{filename}"
         signed_url = signer.generate_presigned_url(
             url,
             date_less_than=expiration_time
@@ -71,10 +71,32 @@ async def upload(file: UploadFile = File(...)):
         except:
             return "error in uploading."
     
-@app.get("/get-signed-url")
+
+def list_objects(bucket_name='reeltimes3', folder_name='MP4'):
+    paginator = s3.get_paginator('list_objects_v2')    
+    page_iterator = paginator.paginate(Bucket=bucket_name, Prefix=folder_name)
+    filenames = []
+
+    for page in page_iterator:
+        if 'Contents' in page:
+            for obj in page['Contents']:
+                print(f"Key: {obj['Key']}, Size: {obj['Size']}")
+                filenames.append(obj['Key'].split('/')[-1])
+    
+    return filenames
+
+
+@app.get("/get-signed-url", response_model=List[str])
 async def get_signed_url():
-    signed_url = generate_signed_url()
-    return JSONResponse(content={'signedUrl': signed_url})
+    filenames = list_objects('reeltimes3', 'MP4')
+    signed_urls = []
+    print(filenames)
+    for filename in filenames:
+        signed_url = generate_signed_url(filename)
+        # print(signed_url)
+        signed_urls.append(signed_url)
+    return signed_urls
+    # return JSONResponse(content={'signedUrl': signed_url})
 
 @app.get("/")
 async def root():
