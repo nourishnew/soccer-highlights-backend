@@ -93,13 +93,16 @@ def list_objects(bucket_name='reeltimes3', folder_name='demo'):
 async def get_signed_url():
     folder_name = 'demo'
     filenames = list_objects('reeltimes3', folder_name)
+    print(filenames)
+    filenames = sorted(filenames)
+    print(filenames)
     signed_urls = []
     # print(filenames)
     for filename in filenames:
         signed_url = generate_signed_url(f"{folder_name}/{filename}")
         # print(signed_url)
         signed_urls.append(signed_url)
-    print("SIGNED_URLS", signed_urls)
+    #print("SIGNED_URLS", signed_urls)
     return signed_urls
     # return JSONResponse(content={'signedUrl': signed_url})
 
